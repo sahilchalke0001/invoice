@@ -1,6 +1,3 @@
-# Q&A Chatbot
-#from langchain.llms import OpenAI
-
 from dotenv import load_dotenv
 
 load_dotenv()  # take environment variables from .env.
@@ -45,9 +42,12 @@ def input_image_setup(uploaded_file):
 
 ##initialize our streamlit app
 
-st.set_page_config(page_title="Gemini Image Demo")
+st.set_page_config(
+        page_title="Invoice",
+        page_icon="💯",
+    )
 
-st.header("Gemini Application")
+st.header("Invoice Application")
 input=st.text_input("Input Prompt: ",key="input")
 uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
 image=""   
@@ -56,7 +56,11 @@ if uploaded_file is not None:
     st.image(image, caption="Uploaded Image.", use_container_width=True)
 
 
-submit=st.button("Tell me about the image")
+col1, col2, col3 = st.columns(3)
+
+with col2:
+    submit = st.button("Tell me about the image")
+
 
 input_prompt = """
                You are an expert in understanding invoices.
@@ -74,3 +78,12 @@ if submit:
         response=get_gemini_response(input_prompt,image_data,input)
         st.subheader("The Response is")
         st.write(response)
+
+page_bg_img = '''
+    <style>
+    #invoice-application{
+        text-align: center;
+    }
+    </style>
+    '''
+st.markdown(page_bg_img, unsafe_allow_html=True)
