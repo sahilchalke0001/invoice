@@ -1,10 +1,17 @@
 # venv\Scripts\Activate  python -m streamlit run vision.py
 
+# venv\Scripts\Activate 
+# python -m streamlit run vision.py
+
 from dotenv import load_dotenv
 import streamlit as st
 import os
 import google.generativeai as genai
 from PIL import Image
+import speech_recognition as sr
+from gtts import gTTS
+import tempfile
+import base64
 
 # Load all environment variables
 load_dotenv()
@@ -34,6 +41,32 @@ def input_image_setup(uploaded_file):
         return image_parts
     else:
         raise FileNotFoundError("No file uploaded")
+
+# Function to convert text to speech and play audio
+def text_to_speech(text):
+    try:
+        tts = gTTS(text, lang="en")
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as temp_audio:
+            tts.save(temp_audio.name)
+            st.audio(temp_audio.name, format="audio/mp3")
+    except Exception as e:
+        st.error(f"Error generating audio: {str(e)}")
+
+# Function to capture voice input and transcribe
+def get_voice_input():
+    recognizer = sr.Recognizer()
+    with sr.Microphone() as source:
+        st.info("🎙️ Listening for your question...")
+        try:
+            audio = recognizer.listen(source, timeout=5)
+            text = recognizer.recognize_google(audio)
+            st.success(f"✅ You said: {text}")
+            return text
+        except sr.UnknownValueError:
+            st.error("❌ Could not understand the audio.")
+        except sr.RequestError:
+            st.error("❌ Error connecting to Google Speech API.")
+    return ""
 
 # Initialize Streamlit app
 st.set_page_config(
@@ -70,9 +103,17 @@ You are an expert in understanding invoices.
 You will receive input images as invoices and will have to answer questions based on the input image.
 """
 
-# User input prompt
-user_input = st.text_input("Input your question about the invoice:", key="input")
+# Text or voice input for user question
+st.subheader("Ask a question about the invoice")
 
+# User input options: text or voice
+user_input = st.text_input("Type your question:", key="input")
+
+# Button for voice input
+if st.button("🎙️ Use Voice Input"):
+    user_input = get_voice_input()
+
+# Button to analyze invoice and generate response
 if st.button("Tell me about the invoice"):
     try:
         # Choose the appropriate image source
@@ -84,10 +125,19 @@ if st.button("Tell me about the invoice"):
             st.error("Please upload or capture an invoice.")
             st.stop()
 
+        # Check if user input (text or voice) is provided
+        if not user_input:
+            st.error("Please provide a question.")
+            st.stop()
+
         # Get response from Gemini API
         response = get_gemini_response(image_data, input_prompt, user_input)
         st.subheader("The Response is:")
         st.write(response)
+
+        # Generate and play audio response
+        text_to_speech(response)
+
     except Exception as e:
         st.error(f"An error occurred: {str(e)}")
 
