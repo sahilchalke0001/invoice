@@ -1,91 +1,102 @@
-# venv\Scripts\Activate
+# venv\Scripts\Activate  python -m streamlit run vision.py
 
 from dotenv import load_dotenv
-
-load_dotenv()  # take environment variables from .env.
-
 import streamlit as st
 import os
-import pathlib
-import textwrap
+import google.generativeai as genai
 from PIL import Image
 
+# Load all environment variables
+load_dotenv()
 
-import google.generativeai as genai
-
-
-os.getenv("GOOGLE_API_KEY")
+# Configure Google Gemini API
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
-## Function to load OpenAI model and get respones
+# Function to load Google Gemini Pro Vision API and get response
+def get_gemini_response(image_data, prompt, user_input):
+    try:
+        model = genai.GenerativeModel("gemini-1.5-flash")
+        response = model.generate_content([prompt, image_data[0], user_input])
+        return response.text
+    except Exception as e:
+        return f"Error generating response: {str(e)}"
 
-def get_gemini_response(input,image,prompt):
-    model = genai.GenerativeModel('gemini-1.5-flash')
-    response = model.generate_content([input,image[0],prompt])
-    return response.text
-    
-
+# Function to process uploaded image
 def input_image_setup(uploaded_file):
-    # Check if a file has been uploaded
     if uploaded_file is not None:
-        # Read the file into bytes
         bytes_data = uploaded_file.getvalue()
-
         image_parts = [
             {
-                "mime_type": uploaded_file.type,  # Get the mime type of the uploaded file
-                "data": bytes_data
+                "mime_type": uploaded_file.type,
+                "data": bytes_data,
             }
         ]
         return image_parts
     else:
         raise FileNotFoundError("No file uploaded")
 
-
-##initialize our streamlit app
-
+# Initialize Streamlit app
 st.set_page_config(
-        page_title="Invoice",
-        page_icon="💯",
-    )
+    page_title="Invoice Extractor",
+    page_icon="💯"
+)
 
-st.header("Invoice Application")
-input=st.text_input("Input Prompt: ",key="input")
-uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
-image=""   
-if uploaded_file is not None:
-    image = Image.open(uploaded_file)
-    st.image(image, caption="Uploaded Image.", use_container_width=True)
+st.header("💯 Invoice Application 💯")
 
+# Provide options for uploading or capturing an image
+st.subheader("Input Options")
+tab1, tab2 = st.tabs(["📤 Upload Invoice", "📸 Capture Invoice"])
 
-col1, col2, col3 = st.columns(3)
+uploaded_file = None
+captured_photo = None
 
-with col2:
-    submit = st.button("Tell me about the image")
+# Tab for file uploader
+with tab1:
+    uploaded_file = st.file_uploader("Choose an invoice image...", type=["jpg", "jpeg", "png"])
+    if uploaded_file:
+        image = Image.open(uploaded_file)
+        st.image(image, caption="Uploaded Invoice.", use_container_width=True)
 
+# Tab for capturing photo
+with tab2:
+    captured_photo = st.camera_input("Take a photo of your invoice")
+    if captured_photo:
+        image = Image.open(captured_photo)
+        st.image(image, caption="Captured Invoice.", use_container_width=True)
 
+# Input prompt for invoice analysis
 input_prompt = """
-               You are an expert in understanding invoices.
-               You will receive input images as invoices &
-               you will have to answer questions based on the input image
-               """
+You are an expert in understanding invoices.
+You will receive input images as invoices and will have to answer questions based on the input image.
+"""
 
-## If ask button is clicked
+# User input prompt
+user_input = st.text_input("Input your question about the invoice:", key="input")
 
-if submit:
-    if uploaded_file is None:
-        st.error("No image uploaded. Please upload an image to analyze.")
-    else:    
-        image_data = input_image_setup(uploaded_file)
-        response=get_gemini_response(input_prompt,image_data,input)
-        st.subheader("The Response is")
+if st.button("Tell me about the invoice"):
+    try:
+        # Choose the appropriate image source
+        if uploaded_file:
+            image_data = input_image_setup(uploaded_file)
+        elif captured_photo:
+            image_data = input_image_setup(captured_photo)
+        else:
+            st.error("Please upload or capture an invoice.")
+            st.stop()
+
+        # Get response from Gemini API
+        response = get_gemini_response(image_data, input_prompt, user_input)
+        st.subheader("The Response is:")
         st.write(response)
+    except Exception as e:
+        st.error(f"An error occurred: {str(e)}")
 
+# Styling for center alignment
 page_bg_img = '''
     <style>
-    #invoice-application{
-        text-align: center;
-    }
+        h2, h3 {
+            text-align: center;
+        }
     </style>
-    '''
+'''
 st.markdown(page_bg_img, unsafe_allow_html=True)
