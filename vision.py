@@ -1,10 +1,11 @@
-# venv\Scripts\Activate  python -m streamlit run vision.py
-
 from dotenv import load_dotenv
 import streamlit as st
 import os
 import google.generativeai as genai
 from PIL import Image
+import speech_recognition as sr
+from gtts import gTTS
+import tempfile
 
 # Load all environment variables
 load_dotenv()
@@ -35,13 +36,48 @@ def input_image_setup(uploaded_file):
     else:
         raise FileNotFoundError("No file uploaded")
 
+# Function to convert text to speech and play audio
+def text_to_speech(text):
+    try:
+        tts = gTTS(text, lang="en")
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as temp_audio:
+            tts.save(temp_audio.name)
+            st.audio(temp_audio.name, format="audio/mp3")
+    except Exception as e:
+        st.error(f"Error generating audio: {str(e)}")
+
+# Function to capture voice input and immediately process response
+def get_voice_input_and_respond(image_data, prompt):
+    recognizer = sr.Recognizer()
+    with sr.Microphone() as source:
+        st.info("🎙️ Listening for your question... Speak now!")
+        try:
+            audio = recognizer.listen(source, timeout=5)
+            user_input = recognizer.recognize_google(audio)
+            st.success(f"✅ You said: {user_input}")
+
+            # Generate response immediately
+            response = get_gemini_response(image_data, prompt, user_input)
+            st.subheader("The Response is:")
+            st.write(response)
+
+            # Play response audio
+            text_to_speech(response)
+
+        except sr.UnknownValueError:
+            st.error("❌ Sorry, I couldn't understand the audio.")
+        except sr.RequestError:
+            st.error("❌ Error connecting to Google Speech API.")
+        except Exception as e:
+            st.error(f"⚠️ Error occurred: {str(e)}")
+
 # Initialize Streamlit app
 st.set_page_config(
-    page_title="Invoice Extractor",
+    page_title="Voicy",
     page_icon="💯"
 )
 
-st.header("💯 Invoice Application 💯")
+st.header("💯 Voicy 💯")
 
 # Provide options for uploading or capturing an image
 st.subheader("Input Options")
@@ -70,26 +106,40 @@ You are an expert in understanding invoices.
 You will receive input images as invoices and will have to answer questions based on the input image.
 """
 
-# User input prompt
-user_input = st.text_input("Input your question about the invoice:", key="input")
+# Ensure an image is uploaded before proceeding
+image_data = None
+if uploaded_file:
+    image_data = input_image_setup(uploaded_file)
+elif captured_photo:
+    image_data = input_image_setup(captured_photo)
 
-if st.button("Tell me about the invoice"):
-    try:
-        # Choose the appropriate image source
-        if uploaded_file:
-            image_data = input_image_setup(uploaded_file)
-        elif captured_photo:
-            image_data = input_image_setup(captured_photo)
-        else:
-            st.error("Please upload or capture an invoice.")
-            st.stop()
+# Text input for question
+st.subheader("Ask a question about the invoice")
+user_input = st.text_input("Type your question:", key="input")
 
-        # Get response from Gemini API
-        response = get_gemini_response(image_data, input_prompt, user_input)
-        st.subheader("The Response is:")
-        st.write(response)
-    except Exception as e:
-        st.error(f"An error occurred: {str(e)}")
+# Button for voice input that automatically generates a response
+if st.button("🎙️ Use Voice Input"):
+    if image_data:
+        get_voice_input_and_respond(image_data, input_prompt)
+    else:
+        st.error("⚠️ Please upload or capture an invoice first.")
+
+# Button to analyze invoice with text input
+if st.button("Ask about the Invoice"):
+    if not user_input:
+        st.error("⚠️ Please provide a question.")
+        st.stop()
+    if not image_data:
+        st.error("⚠️ Please upload or capture an invoice.")
+        st.stop()
+
+    # Get response from Gemini API
+    response = get_gemini_response(image_data, input_prompt, user_input)
+    st.subheader("The Response is:")
+    st.write(response)
+
+    # Generate and play audio response
+    text_to_speech(response)
 
 # Styling for center alignment
 page_bg_img = '''

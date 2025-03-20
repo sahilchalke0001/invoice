@@ -6,3 +6,7 @@ PyPDF2
 chromadb
 faiss-cpu
 flask
+SpeechRecognition
+pillow
+gTTS
+PyAudio
