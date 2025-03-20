@@ -8,4 +8,4 @@ faiss-cpu
 SpeechRecognition
 pillow
 gTTS
-PyAudio
+pyaudio==0.2.11
