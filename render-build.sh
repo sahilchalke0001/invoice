@@ -1,7 +1,8 @@
 #!/bin/bash
+set -e
 
-# Install system dependencies required for PyAudio
-apt-get update && apt-get install -y portaudio19-dev
+# Update package list and install required dependencies
+apt-get update && apt-get install -y portaudio19-dev python3-dev python3-pip gcc
 
-# Install project dependencies
+# Install Python dependencies
 pip install -r requirements.txt
