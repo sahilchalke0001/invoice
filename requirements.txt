@@ -11,3 +11,4 @@ gTTS
 sounddevice
 pyttsx3
 numpy
+pyaudio
