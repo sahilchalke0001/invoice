@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: my-app
+    env: python
+    buildCommand: ./build.sh
+    startCommand: python app.py  # Replace with your main script
+    plan: free
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11
