@@ -12,3 +12,4 @@ sounddevice
 pyttsx3
 numpy
 pyaudio
+streamlit-audiorec

@@ -41,8 +41,10 @@ def text_to_speech(text):
     try:
         engine = pyttsx3.init()
 
-        # Save audio to a buffer
+        # Create a buffer to save audio in memory
         audio_buffer = io.BytesIO()
+
+        # Generate audio and save to buffer
         engine.save_to_file(text, 'temp_audio.mp3')
         engine.runAndWait()
 
@@ -52,8 +54,11 @@ def text_to_speech(text):
 
         audio_buffer.seek(0)
 
-        # Play audio in Streamlit
+        # Play audio in Streamlit directly from buffer
         st.audio(audio_buffer, format="audio/mp3")
+
+        # Delete the temporary file after reading
+        os.remove("temp_audio.mp3")
 
     except Exception as e:
         st.error(f"Error generating audio: {str(e)}")
@@ -103,14 +108,14 @@ with tab1:
     uploaded_file = st.file_uploader("Choose an invoice image...", type=["jpg", "jpeg", "png"])
     if uploaded_file:
         image = Image.open(uploaded_file)
-        st.image(image, caption="Uploaded Invoice.", use_container_width=True)
+        st.image(image, caption="Uploaded Invoice.", width=700)
 
 # Tab for capturing photo
 with tab2:
     captured_photo = st.camera_input("Take a photo of your invoice")
     if captured_photo:
         image = Image.open(captured_photo)
-        st.image(image, caption="Captured Invoice.", use_container_width=True)
+        st.image(image, caption="Captured Invoice.", width=700)
 
 # Input prompt for invoice analysis
 input_prompt = """
