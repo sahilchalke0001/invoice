@@ -4,8 +4,8 @@ import os
 import google.generativeai as genai
 from PIL import Image
 import speech_recognition as sr
-from gtts import gTTS
-import tempfile
+import pyttsx3
+import io
 
 # Load all environment variables
 load_dotenv()
@@ -36,13 +36,25 @@ def input_image_setup(uploaded_file):
     else:
         raise FileNotFoundError("No file uploaded")
 
-# Function to convert text to speech and play audio
+# Function to convert text to speech and play audio using pyttsx3 and io.BytesIO
 def text_to_speech(text):
     try:
-        tts = gTTS(text, lang="en")
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as temp_audio:
-            tts.save(temp_audio.name)
-            st.audio(temp_audio.name, format="audio/mp3")
+        engine = pyttsx3.init()
+
+        # Save audio to a buffer
+        audio_buffer = io.BytesIO()
+        engine.save_to_file(text, 'temp_audio.mp3')
+        engine.runAndWait()
+
+        # Read the saved audio into the buffer
+        with open("temp_audio.mp3", "rb") as audio_file:
+            audio_buffer.write(audio_file.read())
+
+        audio_buffer.seek(0)
+
+        # Play audio in Streamlit
+        st.audio(audio_buffer, format="audio/mp3")
+
     except Exception as e:
         st.error(f"Error generating audio: {str(e)}")
 
