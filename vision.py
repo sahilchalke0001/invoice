@@ -63,7 +63,7 @@ def text_to_speech(text):
     except Exception as e:
         st.error(f"Error generating audio: {str(e)}")
 
-# Function to capture voice input and immediately process response
+# Updated function to capture voice input and only answer the question
 def get_voice_input_and_respond(image_data, prompt):
     recognizer = sr.Recognizer()
     with sr.Microphone() as source:
@@ -73,8 +73,8 @@ def get_voice_input_and_respond(image_data, prompt):
             user_input = recognizer.recognize_google(audio)
             st.success(f"✅ You said: {user_input}")
 
-            # Generate response immediately
-            response = get_gemini_response(image_data, prompt, user_input)
+            # Generate response immediately based only on the question
+            response = get_gemini_response(None, "", user_input)  
             st.subheader("The Response is:")
             st.write(response)
 
@@ -87,6 +87,7 @@ def get_voice_input_and_respond(image_data, prompt):
             st.error("❌ Error connecting to Google Speech API.")
         except Exception as e:
             st.error(f"⚠️ Error occurred: {str(e)}")
+
 
 # Initialize Streamlit app
 st.set_page_config(
